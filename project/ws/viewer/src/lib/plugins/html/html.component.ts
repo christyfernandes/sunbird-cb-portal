@@ -1,4 +1,4 @@
-import { Component, ElementRef, Input, OnChanges, OnInit, ViewChild, OnDestroy } from '@angular/core'
+import { Component, ElementRef, Input, OnChanges, OnInit, ViewChild, OnDestroy, SecurityContext } from '@angular/core'
 import { MatLegacySnackBar as MatSnackBar } from '@angular/material/legacy-snack-bar'
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser'
 import { Router, ActivatedRoute } from '@angular/router'
@@ -12,6 +12,7 @@ import { environment } from 'src/environments/environment';
 import { Subscription, timer } from 'rxjs'
 import { Storage } from './SCORMAdapter/storage'
 import { AppTocService } from '@ws/app/src/lib/routes/app-toc/services/app-toc.service'
+import { SCORMExternalService } from 'src/app/services/scorm-external.service'
 /* tslint:enable */
 
 @Component({
@@ -46,6 +47,9 @@ export class HtmlComponent implements OnInit, OnChanges, OnDestroy {
     user_id_type: 'uuid',
   }
   oldData: any = undefined
+  launchLink!: any
+  iframeLoadError = false
+  trustedLaunchLink: SafeResourceUrl | null = null
 
   ticks = 0
   private timer!: any
@@ -53,6 +57,11 @@ export class HtmlComponent implements OnInit, OnChanges, OnDestroy {
   private sub!: Subscription
   tocConfigSubscription: Subscription | null = null
   tocConfig!: any
+
+  // TO-DO
+  // c300dadd-cd53-4b9d-85a6-538c2f951f49
+  externalCourseId = '3e525053-9983-4a37-841a-ac12c41ef51e'
+  externalRegistrationId = this.externalCourseId + new Date().getTime().toString()
 
   constructor(
     private domSanitizer: DomSanitizer,
@@ -67,22 +76,10 @@ export class HtmlComponent implements OnInit, OnChanges, OnDestroy {
     private loggerSvc: LoggerService,
     private widgetContentSvc: WidgetContentService,
     private tocSvc: AppTocService,
+    private scromExternalSvc: SCORMExternalService
   ) {
     (window as any).API = this.scormAdapterService
-    // if (window.addEventListener) {
     window.addEventListener('message', this.receiveMessage.bind(this))
-    // }
-    // else {
-    //   (<any>window).attachEvent('onmessage', this.receiveMessage.bind(this))
-    // }
-    // window.addEventListener('message', function (event) {
-    //   /* tslint:disable-next-line */
-    //   console.log('message', event)
-    // })
-    // window.addEventListener('onmessage', function (event) {
-    //   /* tslint:disable-next-line */
-    //   console.log('onmessage===>', event)
-    // })
   }
 
   ngOnInit() {
@@ -94,13 +91,37 @@ export class HtmlComponent implements OnInit, OnChanges, OnDestroy {
       if (!this.forPreview) {
         this.scormAdapterService.loadDataV2()
         this.timer = timer(1000, 1000)
-        // subscribing to a observable returns a subscription object
         this.sub = this.timer.subscribe((t: any) => this.tickerFunc(t))
         this.scormAdapterService.scormInitialized$.subscribe(value => {
           this.playScormContentFlag = value
         })
       }
     }
+
+    // this.scromExternalSvc.getCourses().subscribe(data => {
+    //   console.log('scromExternalSvc.getCourses() :: ', data) 
+    // })
+    
+    const req = {
+      "courseId": this.externalCourseId,
+      "learner": {
+          "id": this.configSvc.unMappedUser.identifier,
+          "firstName": this.configSvc.unMappedUser.firstName,
+          "lastName": ""
+      },
+      "registrationId": this.externalRegistrationId
+  }
+    this.scromExternalSvc.addRegistrations(req).subscribe(data => {
+      console.log('addRegistrations data',data)
+      this.scromExternalSvc.getLaunchLink(this.externalRegistrationId).subscribe(data => {
+        console.log('getLaunchLink data',data)
+        if(data.launchLink) {
+          this.launchLink = 'https://tarento-demo.engine.scorm.com' + data.launchLink
+          this.trustedLaunchLink = this.domSanitizer.bypassSecurityTrustResourceUrl(this.launchLink)
+          console.log(this.launchLink)
+        }
+      })
+    })
   }
 
   tickerFunc(tick: any) {
@@ -108,6 +129,9 @@ export class HtmlComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.scromExternalSvc.getRegistrationProgress(this.externalRegistrationId).subscribe(data => {
+      console.log('getRegistrationProgress data',data)
+    })
     window.removeEventListener('message', this.receiveMessage)
     window.removeEventListener('onmessage', this.receiveMessage)
     // console.log('this.ticks: ', this.ticks)
@@ -444,7 +468,6 @@ export class HtmlComponent implements OnInit, OnChanges, OnDestroy {
   openInNewTab() {
     if (this.htmlContent) {
       if (this.mobAppSvc && this.mobAppSvc.isMobile) {
-        // window.open(this.htmlContent.artifactUrl)
         setTimeout(
           () => {
             this.mobileOpenInNewTab.nativeElement.click()
@@ -501,7 +524,6 @@ export class HtmlComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   raiseTelemetry(data1: any) {
-    // if (this.forPreview) { return }
     if (!this.forPreview) {
       let data: any
       if (this.htmlContent) {
@@ -510,7 +532,6 @@ export class HtmlComponent implements OnInit, OnChanges, OnDestroy {
         } else {
           data = { ...data1 }
         }
-        /* tslint:disable-next-line */
         if (this.activatedRoute.snapshot.queryParams.collectionId) {
           this.collectionId = this.activatedRoute.snapshot.queryParams.collectionId
         }
@@ -522,8 +543,6 @@ export class HtmlComponent implements OnInit, OnChanges, OnDestroy {
           },
           {
             ...data,
-            // contentId: this.htmlContent.identifier,
-            // contentType: this.htmlContent.primaryCategory,
             id: this.htmlContent.identifier,
             type: this.htmlContent.primaryCategory,
             context: this.htmlContent.context,
@@ -555,6 +574,19 @@ export class HtmlComponent implements OnInit, OnChanges, OnDestroy {
     }
     const newUrl = newLink.join('/')
     return  newUrl
+  }
+
+  openExternalContent() {
+    if (this.trustedLaunchLink) {
+      const launchLink = this.domSanitizer.sanitize(SecurityContext.RESOURCE_URL, this.trustedLaunchLink);
+      if (launchLink) {
+        window.open(launchLink, '_blank');
+      }
+    }
+  }
+
+  onIframeLoadError() {
+    this.iframeLoadError = true;
   }
 
 }

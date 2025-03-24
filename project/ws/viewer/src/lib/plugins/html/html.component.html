@@ -82,44 +82,70 @@
     page.
   </h2>
 </div>
-<div class="container-v2">
-  <!-- [hidden]="this.pageFetchStatus !== 'done'" *ngIf="
-    htmlContent?.isIframeSupported !== 'No' &&
-    (!htmlContent?.isInIntranet || (htmlContent?.isInIntranet && isUserInIntranet)) &&
-    (!isIntranetUrl || (isIntranetUrl && isUserInIntranet))"-->
-  <ng-container *ngIf="playScormContentFlag !== scormLMSStatus.LMSNegative">
-    <iframe #iframeElem title=" HTML Content Viewer" i18n-title [src]="iframeUrl"
-      (load)="onIframeLoadOrError('load',iframeElem,$event)" (error)="onIframeLoadOrError('error')" [name]="iframeName"
-      allow="fullscreen; accelerometer; autoplay; encrypted-media; gyroscope; microphone; camera;"
-      class="html-iframe"></iframe>
-  </ng-container>
-  <ng-container *ngIf="playScormContentFlag === scormLMSStatus.LMSNegative">
-    <div class="start-scorm-content-container floating-overlay" >
-      <div class="flex flex-around flex-wrapped">
-        <div class="w-full">
-          <div #htmlContainer>
-            <mat-card class="html-viewer-container">
-              <mat-card-content class="content-instruction-container">
-                <div class="content-instruction">
-                  <div>
-                    <p class="content-instruction-desc">{{'playerbrief.openScorm' | translate}}</p>
+<ng-container *ngIf="!launchLink">
+
+  <div class="container-v2">
+    <!-- [hidden]="this.pageFetchStatus !== 'done'" *ngIf="
+      htmlContent?.isIframeSupported !== 'No' &&
+      (!htmlContent?.isInIntranet || (htmlContent?.isInIntranet && isUserInIntranet)) &&
+      (!isIntranetUrl || (isIntranetUrl && isUserInIntranet))"-->
+    <ng-container *ngIf="playScormContentFlag !== scormLMSStatus.LMSNegative">
+      <iframe #iframeElem title=" HTML Content Viewer" i18n-title [src]="iframeUrl"
+        (load)="onIframeLoadOrError('load',iframeElem,$event)" (error)="onIframeLoadOrError('error')" [name]="iframeName"
+        allow="fullscreen; accelerometer; autoplay; encrypted-media; gyroscope; microphone; camera;"
+        class="html-iframe"></iframe>
+    </ng-container>
+    <ng-container *ngIf="playScormContentFlag === scormLMSStatus.LMSNegative">
+      <div class="start-scorm-content-container floating-overlay" >
+        <div class="flex flex-around flex-wrapped">
+          <div class="w-full">
+            <div #htmlContainer>
+              <mat-card class="html-viewer-container">
+                <mat-card-content class="content-instruction-container">
+                  <div class="content-instruction">
+                    <div>
+                      <p class="content-instruction-desc">{{'playerbrief.openScorm' | translate}}</p>
+                    </div>
+                    <div class="flex cursor-pointer justify-center">
+                      <button color="secondary" class="play-btn flex mat-body-2 flex-middle font-bold-imp px-2" (click)="playScormContentFlag=true;receiveMessage({})">
+                        <ng-container>
+                          <span class="mr-1">
+                            <mat-icon class="vertical-align-middle">play_circle_filled</mat-icon>
+                            <span class="fw-700">Play</span>
+                          </span>
+                        </ng-container>                
+                      </button>
+                    </div>
                   </div>
-                  <div class="flex cursor-pointer justify-center">
-                    <button color="secondary" class="play-btn flex mat-body-2 flex-middle font-bold-imp px-2" (click)="playScormContentFlag=true;receiveMessage({})">
-                      <ng-container>
-                        <span class="mr-1">
-                          <mat-icon class="vertical-align-middle">play_circle_filled</mat-icon>
-                          <span class="fw-700">Play</span>
-                        </span>
-                      </ng-container>                
-                    </button>
-                  </div>
-                </div>
-              </mat-card-content>
-            </mat-card>
+                </mat-card-content>
+              </mat-card>
+            </div>
           </div>
         </div>
       </div>
+    </ng-container>
+  
+  </div>
+</ng-container>
+
+  <!-- External content iframe -->
+  <ng-container *ngIf="launchLink">
+    <div class="container-v2">
+      <!-- Add error handling for iframe load failure -->
+      <div *ngIf="iframeLoadError" class="text-center margin-top-m">
+      <h2 class="mat-h2">This content cannot be embedded. Please use the button below to open it in a new window.</h2>
+      <button mat-raised-button color="primary" (click)="openExternalContent()">
+        Open in New Window
+      </button>
+      </div>
+
+      <iframe #externalIframe
+      title="HTML Content Viewer External" 
+      [src]="trustedLaunchLink"
+      (load)="onIframeLoadOrError('load', externalIframe, $event)" 
+      (error)="onIframeLoadError($event)" 
+      class="html-iframe"></iframe>
+
     </div>
+    <!-- <iframe src="https://tarento-demo.engine.scorm.com/RusticiEngine/defaultui/launch.jsp?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJsYXVuY2giLCJjb25maWd1cmF0aW9uIjoiIiwicmVnaXN0cmF0aW9uIjoiMmRkNWU4NTEtM2ZhMi00N2E5LTgwZDAtYWRjOTI2MjQ4ZThiMTc0MDk4NTQwMzc4NCIsImp0aSI6IjNKV2tobGdTUXFxSXQ1WVVuZHhRRWcifQ.7nFya3jW7sYOqwp3EWcFetS4cWLVX_XO_hBnOOgZQOU" height="200" width="300" title="Iframe Example"></iframe> -->
   </ng-container>
-</div>

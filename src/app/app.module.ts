@@ -164,6 +164,7 @@ import { MatToolbarModule } from '@angular/material/toolbar'
 import { MatLegacyTooltipModule as MatTooltipModule } from '@angular/material/legacy-tooltip'
 import { PickerModule } from '@ctrl/ngx-emoji-mart'
 import { CKEditorModule } from '@ckeditor/ckeditor5-angular'
+import { SCORMExternalService } from './services/scorm-external.service'
 // @Injectable()
 // export class HammerConfig extends GestureConfig {
 //   buildHammer(element: HTMLElement) {
@@ -397,6 +398,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     { provide: ErrorHandler, useClass: GlobalErrorHandlingService },
     { provide: 'environment', useValue: environment },
     GuidedTourService,
+    SCORMExternalService,
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })

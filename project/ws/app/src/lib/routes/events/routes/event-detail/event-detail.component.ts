@@ -93,7 +93,6 @@ export class EventDetailComponent implements OnInit {
     private contentSvc: WidgetContentLibService,
     // private discussService: DiscussService,
     private snackBar: MatSnackBar,
-    private netCoreService: NetCoreService
   ) {
     if (localStorage.getItem('websiteLanguage')) {
       this.translate.setDefaultLang('en')
@@ -213,7 +212,6 @@ export class EventDetailComponent implements OnInit {
     if (this.eventData && userId) {
       this.eventSvc.getIsEnrolled(userId, this.eventData.identifier, this.batchId).subscribe((data: any) => {
         /* tslint:disable */
-        this.contentViewEventForNetCore('view')
         if (data && data.result && data.result.events && data.result.events.length > 0) {
           this.enrolledEvent = data.result.events.find((d: any) => d.contentId === this.eventData.identifier)
           this.enrolledEvent = { ...this.enrolledEvent }
@@ -229,7 +227,6 @@ export class EventDetailComponent implements OnInit {
           if (this.enrolledEvent && this.enrolledEvent.completionPercentage) {
             this.enrolledEvent['completionPercentage'] = Math.round(this.enrolledEvent.completionPercentage).toFixed(0)
             if(this.enrolledEvent && this.enrolledEvent.status === 2) {
-              this.contentViewEventForNetCore('complete')
             }
           }
 
